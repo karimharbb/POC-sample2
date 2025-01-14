@@ -1,0 +1,60 @@
+steps:
+  # 1. Clone the repository (automatically done by Cloud Build)
+
+  # 2. Build JAR files using Maven
+  - name: 'gcr.io/cloud-builders/mvn'
+    entrypoint: 'mvn'
+    args: ['clean', 'package']
+    dir: 'POC-sample'  # The relative path from Cloud Build's workspace (assuming the repository is cloned here)
+
+  # 3. Push JAR files to Artifact Registry (Google Cloud Storage)
+  - name: 'gcr.io/cloud-builders/gsutil'
+    args: [
+      'cp', 
+      'POC-sample/target/*.jar', 
+      'poc-test-buckett'  # Replace with your Artifact Registry bucket
+    ]
+
+  # 4. Build the Docker container image for the Spring Boot application
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build', 
+      '-t', 'us-central1-docker.pkg.dev/poc-test-447813/$_IMAGE_NAME:$_COMMIT_SHA',
+      '.'
+    ]
+    dir: 'POC-sample'  # Set the directory to the Spring Boot project directory
+
+  # 5. Push the Docker container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'push', 
+      'us-central1-docker.pkg.dev/poc-test-447813/$_IMAGE_NAME:$_COMMIT_SHA'
+    ]
+
+  # 6. (Optional) Trigger Cloud Deploy (if deploying via Cloud Deploy)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'deploy'
+      - 'releases'
+      - 'create'
+      - '$_RELEASE_NAME'  # Replace with your release name
+      - '--delivery-pipeline=$_PIPELINE'  # Replace with your Cloud Deploy pipeline name
+      - '--region=us-central1'  # Specify your region, e.g., us-central1
+      - '--images=us-central1-docker.pkg.dev/poc-test-447813/$_IMAGE_NAME:$_COMMIT_SHA'
+
+images:
+  - 'us-central1-docker.pkg.dev/poc-test-447813/$_IMAGE_NAME:$_COMMIT_SHA'
+
+substitutions:
+  _DEPLOYMENT_NAME: 'my-deployment'
+  _IMAGE_NAME: 'poc-test'
+  _PROJECT_ID: 'poc-test-447813'
+  _COMMIT_SHA: v1.0
+  _RELEASE_NAME: 'v1.0.0'  # Specify your release version
+  _PIPELINE: 'my-pipeline'  # The pipeline name created in Cloud Deploy
+
+options:
+  substitutionOption: ALLOW_LOOSE
+
+
