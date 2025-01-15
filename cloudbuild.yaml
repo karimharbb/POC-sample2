@@ -5,13 +5,13 @@ steps:
   - name: 'gcr.io/cloud-builders/mvn'
     entrypoint: 'mvn'
     args: ['clean', 'package']
-    dir: 'POC-sample'  # The relative path from Cloud Build's workspace (assuming the repository is cloned here)
+    dir: 'POC-sample2'  # The relative path from Cloud Build's workspace (assuming the repository is cloned here)
 
   # 3. Push JAR files to Artifact Registry (Google Cloud Storage)
   - name: 'gcr.io/cloud-builders/gsutil'
     args: [
       'cp', 
-      'POC-sample/target/*.jar', 
+      'POC-sample2/target/*.jar', 
       'poc-test-buckett'  # Replace with your Artifact Registry bucket
     ]
 
@@ -22,7 +22,7 @@ steps:
       '-t', 'us-central1-docker.pkg.dev/poc-test-447813/$_IMAGE_NAME:$_COMMIT_SHA',
       '.'
     ]
-    dir: 'POC-sample'  # Set the directory to the Spring Boot project directory
+    dir: 'POC-sample2'  # Set the directory to the Spring Boot project directory
 
   # 5. Push the Docker container image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
